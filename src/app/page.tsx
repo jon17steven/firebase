@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth-listener'; // Will create this hook
+import { useAuth } from '@/hooks/use-auth-listener';
 import LoadingSpinner from '@/components/loading-spinner';
+import { ADMIN_EMAIL } from '@/lib/constants'; // Import ADMIN_EMAIL
 
 export default function HomePage() {
   const { user, loading } = useAuth();
@@ -12,8 +13,8 @@ export default function HomePage() {
   useEffect(() => {
     if (!loading) {
       if (user) {
-        // Check for admin role, simplified for now
-        if (user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
+        // Check for admin role
+        if (user.email === ADMIN_EMAIL) { // Use imported ADMIN_EMAIL
            router.replace('/admin/dashboard');
         } else {
            router.replace('/dashboard');

@@ -24,37 +24,49 @@ export const auth = {
   // Mock onAuthStateChanged for useAuthListener
   onAuthStateChanged: (callback: (user: any) => void) => {
     console.warn("Firebase Auth not initialized. Using mock onAuthStateChanged.");
-    // Simulate an unauthenticated user initially
-    // setTimeout(() => callback(null), 100); 
+    // Simulate an unauthenticated user initially after a short delay
+    const timeoutId = setTimeout(() => callback(null), 100); 
+    
     // To test authenticated routes:
-    // setTimeout(() => callback({ uid: 'mock-user-id', email: 'user@example.com', displayName: 'Mock User' }), 100);
+    // const timeoutId = setTimeout(() => callback({ uid: 'mock-user-id', email: 'user@example.com', displayName: 'Mock User' }), 100);
     // To test admin routes:
-    // setTimeout(() => callback({ uid: 'mock-admin-id', email: process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com', displayName: 'Mock Admin' }), 100);
-    return () => {}; // Unsubscribe function
+    // const timeoutId = setTimeout(() => callback({ uid: 'mock-admin-id', email: process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com', displayName: 'Mock Admin' }), 100);
+    
+    return () => clearTimeout(timeoutId); // Unsubscribe function clears the timeout
   },
   // Add other mock auth functions as needed
   signInWithEmailAndPassword: async (email?: string, password?: string) => {
     console.warn("Firebase Auth not initialized. Mocking signInWithEmailAndPassword.");
     if (email === (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com') && password === 'adminpass') {
-      return { user: { uid: 'mock-admin-id', email, displayName: 'Mock Admin' } };
+      // Simulate admin login, then trigger onAuthStateChanged
+      const adminUser = { uid: 'mock-admin-id', email, displayName: 'Mock Admin' };
+      // This direct call is a simplification for the mock. Real Firebase handles this.
+      // auth.onAuthStateChanged_listeners?.forEach(listener => listener(adminUser));
+      return { user: adminUser };
     }
     if (email && password) {
-      return { user: { uid: 'mock-user-id', email, displayName: 'Mock User' } };
+      // Simulate regular user login
+      const regularUser = { uid: 'mock-user-id', email, displayName: 'Mock User' };
+      // auth.onAuthStateChanged_listeners?.forEach(listener => listener(regularUser));
+      return { user: regularUser };
     }
-    throw new Error('Mock auth error');
+    throw new Error('Mock auth error: Invalid credentials or missing email/password.');
   },
   createUserWithEmailAndPassword: async (email?: string, password?: string) => {
     console.warn("Firebase Auth not initialized. Mocking createUserWithEmailAndPassword.");
      if (email && password) {
-      return { user: { uid: 'mock-new-user-id', email, displayName: 'New Mock User' } };
+      const newUser = { user: { uid: 'mock-new-user-id', email, displayName: 'New Mock User' } };
+      // auth.onAuthStateChanged_listeners?.forEach(listener => listener(newUser.user));
+      return newUser;
     }
-    throw new Error('Mock auth error');
+    throw new Error('Mock auth error: Missing email/password for signup.');
   },
   signOut: async () => {
     console.warn("Firebase Auth not initialized. Mocking signOut.");
     // Simulate state change after sign out
-     const event = new CustomEvent('mockAuthSignOut');
+     const event = new CustomEvent('mockAuthSignOut'); // useAuthListener listens to this
      window.dispatchEvent(event);
+     // auth.onAuthStateChanged_listeners?.forEach(listener => listener(null));
   }
 };
 export const db = {}; // Placeholder Firestore instance
