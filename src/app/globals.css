@@ -56,46 +56,51 @@ body {
   }
 
   .dark {
-    /* Define dark theme variables if needed, for now, keeping it light-themed */
-    --background: 224 10% 10%;
-    --foreground: 210 25% 96.1%;
+    --background: 0 0% 8%; /* Near Black */
+    --foreground: 0 0% 95%; /* Near White */
 
-    --card: 224 10% 12%;
-    --card-foreground: 210 25% 96.1%;
+    --card: 0 0% 12%; /* Darker Gray */
+    --card-foreground: 0 0% 95%; /* Near White */
 
-    --popover: 224 10% 12%;
-    --popover-foreground: 210 25% 96.1%;
+    --popover: 0 0% 10%; /* Slightly darker than card for popovers */
+    --popover-foreground: 0 0% 95%; /* Near White */
 
-    --primary: 213 78% 60%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 45 85% 50%; /* Gold */
+    --primary-foreground: 20 80% 15%; /* Dark Brown/Black for text on gold */
 
-    --secondary: 210 20% 20%;
-    --secondary-foreground: 210 25% 90%;
+    --secondary: 0 0% 20%; /* Medium Gray for secondary elements */
+    --secondary-foreground: 0 0% 80%; /* Light Gray text on secondary */
 
-    --muted: 210 20% 18%;
-    --muted-foreground: 210 15% 65%;
+    --muted: 0 0% 15%; /* Dark Gray for muted elements */
+    --muted-foreground: 0 0% 60%; /* Medium Gray text for muted */
 
-    --accent: 256 48% 63%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 0 80% 55%; /* Red */
+    --accent-foreground: 0 0% 98%; /* White text on red */
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 85% 50%; /* A slightly more intense red for destructive actions */
+    --destructive-foreground: 0 0% 98%; /* White text */
 
-    --border: 210 20% 25%;
-    --input: 210 20% 25%;
-    --ring: 213 78% 60%;
+    --border: 0 0% 25%; /* Visible border on dark BG */
+    --input: 0 0% 20%; /* Input background */
+    --ring: 45 85% 55%; /* Gold for focus rings */
 
-    --chart-1: 213 78% 60%;
-    --chart-2: 256 48% 63%;
+    --chart-1: 45 85% 50%; /* Gold */
+    --chart-2: 0 80% 55%; /* Red */
+    --chart-3: 30 70% 60%; /* Orange/Amber */
+    --chart-4: 0 0% 70%;   /* Light Gray */
+    --chart-5: 60 60% 40%; /* Olive/Darker Gold */
+    
+    --radius: 0.5rem; /* Keep radius consistent */
 
-    --sidebar-background: 224 10% 12%;
-    --sidebar-foreground: 210 25% 90%;
-    --sidebar-primary: 213 78% 60%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 213 78% 20%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 210 20% 22%;
-    --sidebar-ring: 213 78% 60%;
+    /* Sidebar specific theme variables for dark mode */
+    --sidebar-background: 0 0% 10%; 
+    --sidebar-foreground: 0 0% 85%; 
+    --sidebar-primary: 45 85% 50%; 
+    --sidebar-primary-foreground: 20 80% 15%; 
+    --sidebar-accent: 0 0% 18%; 
+    --sidebar-accent-foreground: 45 85% 55%; 
+    --sidebar-border: 0 0% 22%; 
+    --sidebar-ring: 45 85% 55%; 
   }
 }
 
