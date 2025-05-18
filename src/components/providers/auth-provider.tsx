@@ -4,8 +4,13 @@ import React, { createContext, useContext } from 'react';
 import { useAuth as useAuthListener } from '@/hooks/use-auth-listener';
 import type { User } from '@/types';
 // Firebase specific functions (login, logout, signup) would be imported here if not mocked
-import { auth as firebaseAuth } from '@/lib/firebase'; // for mock functions
+import { auth as firebaseAuth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut 
+} from 'firebase/auth';
 
 
 interface AuthContextType {
@@ -25,8 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // These would call actual Firebase functions
   const login = async (email?: string, password?: string) => {
     try {
-      // Replace with: await signInWithEmailAndPassword(firebaseAuth, email, password);
-      const result = await firebaseAuth.signInWithEmailAndPassword(email, password);
+      const result = await signInWithEmailAndPassword(firebaseAuth, email || '', password || '');
       toast({ title: "Inicio de sesión exitoso", description: "Bienvenido de nuevo!" });
       return result;
     } catch (error: any) {
@@ -38,8 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = async (email?: string, password?: string) => {
      try {
-      // Replace with: await createUserWithEmailAndPassword(firebaseAuth, email, password);
-      const result = await firebaseAuth.createUserWithEmailAndPassword(email, password);
+      const result = await createUserWithEmailAndPassword(firebaseAuth, email || '', password || '');
       toast({ title: "Registro exitoso", description: "Tu cuenta ha sido creada." });
       return result;
     } catch (error: any) {
@@ -51,8 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      // Replace with: await signOut(firebaseAuth);
-      await firebaseAuth.signOut();
+      await signOut(firebaseAuth);
       toast({ title: "Cierre de sesión exitoso" });
     } catch (error: any)
     {

@@ -1,6 +1,5 @@
 'use client';
 
-import *_React from 'react'; // Fix for "Namespace 'React' has no exported member ' χρήση'"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
