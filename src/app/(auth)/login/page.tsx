@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -9,11 +10,9 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuthContext } from '@/components/providers/auth-provider';
 import { AppLogo } from '@/components/app-logo';
-import { ADMIN_EMAIL } from '@/lib/constants';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Por favor ingresa un email válido.' }),
@@ -26,6 +25,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [showSignupRedirect, setShowSignupRedirect] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -37,20 +38,31 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
+    setApiError(null);
+    setShowSignupRedirect(false);
     try {
-      const authUser = await login(data.email, data.password);
-      // Redirect is handled by root page.tsx or (app)/layout.tsx based on auth state
-      // Forcing a check, or relying on AuthProvider state update and root page redirect
-      if (authUser?.user?.email === ADMIN_EMAIL) {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (error) {
-      // Toast is handled by AuthProvider
-    } finally {
+      await login(data.email, data.password);
+      // La redirección a /admin/dashboard o /dashboard es manejada por src/app/page.tsx
+      // o (app)/layout.tsx una vez que el AuthContext se actualiza.
+      // Aquí, solo nos aseguramos de que el usuario vaya a una ruta post-login.
+      router.push('/dashboard');
+    } catch (error: any) {
       setIsLoading(false);
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+        setApiError('Este correo no está registrado.');
+        setShowSignupRedirect(true);
+      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        // Nota: auth/invalid-credential puede ser devuelto para ambos casos en versiones recientes de Firebase SDK
+        // para prevenir la enumeración de usuarios. Si es así, un mensaje genérico como "Credenciales incorrectas" podría ser mejor.
+        setApiError('Contraseña incorrecta.');
+      } else {
+        setApiError('Error al iniciar sesión. Por favor, inténtalo de nuevo.');
+        // El AuthProvider ya muestra un toast con el error de Firebase si está disponible.
+        console.error("Login error:", error.message, "Code:", error.code);
+      }
     }
+    // No es necesario setIsLoading(false) aquí después de un router.push exitoso,
+    // ya que el componente se desmontará. Ya se maneja en el bloque catch.
   }
 
   return (
@@ -64,7 +76,7 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="email"
@@ -91,9 +103,17 @@ export default function LoginPage() {
                 </FormItem>
               )}
             />
+            {apiError && (
+              <p className="text-sm font-medium text-destructive text-center">{apiError}</p>
+            )}
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Ingresando...' : 'Ingresar'}
             </Button>
+            {showSignupRedirect && (
+              <Button variant="outline" className="w-full" onClick={() => router.push('/signup')} disabled={isLoading}>
+                Ir a Registrarse
+              </Button>
+            )}
           </form>
         </Form>
       </CardContent>

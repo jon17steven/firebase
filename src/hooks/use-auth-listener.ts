@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -11,13 +12,6 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // This is a mock implementation detail for the placeholder auth
-    const handleMockSignOut = () => {
-      setUser(null);
-      setLoading(false);
-    };
-    window.addEventListener('mockAuthSignOut', handleMockSignOut);
-
     const unsubscribe = auth.onAuthStateChanged((firebaseUser: FirebaseUserType | null) => {
       if (firebaseUser) {
         const appUser: User = {
@@ -34,22 +28,10 @@ export function useAuth() {
       setLoading(false);
     });
 
-    // Simulate initial auth state for development without full Firebase setup
-    // Remove this block when using real Firebase
-    if (process.env.NODE_ENV === 'development' && !user && loading) {
-      const mockUser = null; // Set to a mock user object to test authenticated state
-      // const mockUser = { uid: 'test-uid', email: 'test@example.com', displayName: 'Test User', isAdmin: false };
-      // const mockAdminUser = { uid: 'admin-uid', email: ADMIN_EMAIL, displayName: 'Admin User', isAdmin: true };
-      // setUser(mockUser); // Or mockAdminUser
-      // setLoading(false);
-    }
-
-
     return () => {
       unsubscribe();
-      window.removeEventListener('mockAuthSignOut', handleMockSignOut);
     };
-  }, []);
+  }, []); // Empty dependency array ensures this runs once on mount and cleans up on unmount
 
   return { user, loading };
 }
