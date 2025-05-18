@@ -5,21 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PlusCircle, ListChecks, AlertTriangle, CheckCircle2, Zap } from "lucide-react";
 import Link from "next/link";
 import { Ticket, Priority, Status } from "@/types"; // Assuming types are defined
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react"; // Import useMemo
 import { PRIORITIES, STATUSES } from "@/lib/constants";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell } from "recharts";
 import Image from 'next/image';
 
-// Mock data - replace with actual data fetching
-// const mockTickets: Ticket[] = [
-//   { id: '1', title: 'Configurar entorno de desarrollo', description: 'Instalar Node, VSCode, etc.', priority: 'ALTA', status: 'COMPLETADA', dueDate: new Date(2024, 6, 15), createdAt: new Date(2024, 6, 1), updatedAt: new Date(2024, 6, 2), userId: 'user1' },
-//   { id: '2', title: 'Diseñar UI para dashboard', description: 'Crear mockups en Figma.', priority: 'MEDIA', status: 'EN_PROGRESO', dueDate: new Date(2024, 6, 20), createdAt: new Date(2024, 6, 5), updatedAt: new Date(2024, 6, 10), userId: 'user1' },
-//   { id: '3', title: 'Implementar autenticación', description: 'Usar Firebase Auth.', priority: 'ALTA', status: 'PENDIENTE', dueDate: new Date(2024, 6, 25), createdAt: new Date(2024, 6, 10), updatedAt: new Date(2024, 6, 10), userId: 'user1' },
-//   { id: '4', title: 'Desarrollar CRUD de tickets', description: 'Funcionalidad completa para tickets.', priority: 'MEDIA', status: 'PENDIENTE', dueDate: new Date(2024, 7, 1), createdAt: new Date(2024, 6, 12), updatedAt: new Date(2024, 6, 12), userId: 'user1' },
-//   { id: '5', title: 'Revisar textos de la app', description: 'Corregir gramática y ortografía.', priority: 'BAJA', status: 'EN_PROGRESO', dueDate: new Date(2024, 7, 5), createdAt: new Date(2024, 6, 18), updatedAt: new Date(2024, 6, 19), userId: 'user1' },
-// ];
+// Import Firebase Firestore functions and onSnapshot
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
+// Import useAuth hook
+import { useAuth } from '@/hooks/use-auth-listener';
+import { useToast } from '@/hooks/use-toast';
 
 const statusColors: Record<Status, string> = {
   PENDIENTE: "hsl(var(--chart-4))", // yellow-ish
@@ -36,37 +34,138 @@ const priorityColors: Record<Priority, string> = {
 
 export default function DashboardPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(true);
 
+  const { user, loading: loadingUser } = useAuth(); // Use the auth hook
+  const { toast } = useToast();
+
+  // Listen for tickets in real-time for the logged-in user
   useEffect(() => {
-    // In a real app, fetch user's tickets here
-    // For now, use mock data
-    // setTickets(mockTickets);
-  }, []);
+    let unsubscribe: () => void;
+
+    if (!user) {
+      setTickets([]); // Clear tickets if no user is logged in
+      setLoadingTickets(false);
+      return () => {}; // Return empty cleanup function
+    }
+
+    setLoadingTickets(true);
+    try {
+      const ticketsCollectionRef = collection(db, "tickets");
+      // Create a query to get tickets for the logged-in user
+      const q = query(ticketsCollectionRef,
+                      where("userId", "==", user.id)
+                      // No orderBy here by default, add if needed
+                     );
+
+      // Set up real-time listener
+      unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const fetchedTickets: Ticket[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          // Convert Firestore Timestamp to JavaScript Date, handling potential undefined
+          const ticket: Ticket = {
+            id: doc.id,
+            title: data.title,
+            description: data.description || '', // Ensure description is string
+            priority: data.priority,
+            status: data.status,
+            // Convert Firestore Timestamp to JavaScript Date
+            dueDate: data.dueDate?.toDate ? data.dueDate.toDate() : new Date(data.dueDate), 
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt), 
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt), 
+            userId: data.userId,
+          };
+          fetchedTickets.push(ticket);
+        });
+        setTickets(fetchedTickets);
+        setLoadingTickets(false);
+      }, (error) => {
+        console.error('Error fetching tickets in real-time:', error);
+        toast({
+          title: 'Error al cargar tickets',
+          description: 'No se pudieron cargar tus tickets en tiempo real.',
+          variant: 'destructive',
+        });
+        setLoadingTickets(false);
+      });
+
+    } catch (error) {
+      console.error('Error setting up ticket listener:', error);
+       toast({
+            title: 'Error',
+            description: 'Hubo un problema al configurar la escucha de tickets.',
+            variant: 'destructive',
+        });
+      setLoadingTickets(false);
+      return () => {}; // Return empty cleanup function if setup fails
+    }
+
+    // Cleanup function: Unsubscribe from the listener when the component unmounts or user changes
+    return () => { 
+      if (unsubscribe) unsubscribe();
+    };
+
+  }, [user, toast]); // Rerun effect when user object or toast changes
 
   const totalTickets = tickets.length;
-  const ticketsByStatus = STATUSES.map(s => ({
+  
+  // Memoize chart data calculations
+  const ticketsByStatus = useMemo(() => STATUSES.map(s => ({
     name: s.label,
     value: tickets.filter(t => t.status === s.value).length,
     fill: statusColors[s.value],
-  }));
+  })), [tickets]);
 
-  const ticketsByPriority = PRIORITIES.map(p => ({
+  const ticketsByPriority = useMemo(() => PRIORITIES.map(p => ({
     name: p.label,
     value: tickets.filter(t => t.priority === p.value).length,
     fill: priorityColors[p.value],
-  }));
+  })), [tickets]);
 
-  const chartConfigStatus: ChartConfig = {};
-  ticketsByStatus.forEach(item => {
-    chartConfigStatus[item.name] = { label: item.name, color: item.fill };
-  });
+  const chartConfigStatus: ChartConfig = useMemo(() => {
+    const config: ChartConfig = {};
+    ticketsByStatus.forEach(item => {
+      config[item.name] = { label: item.name, color: item.fill };
+    });
+    return config;
+  }, [ticketsByStatus]);
 
-  const chartConfigPriority: ChartConfig = {};
-  ticketsByPriority.forEach(item => {
-    chartConfigPriority[item.name] = { label: item.name, color: item.fill };
-  });
+  const chartConfigPriority: ChartConfig = useMemo(() => {
+    const config: ChartConfig = {};
+    ticketsByPriority.forEach(item => {
+      config[item.name] = { label: item.name, color: item.fill };
+    });
+    return config;
+  }, [ticketsByPriority]);
 
-  if (tickets.length === 0) {
+  // Show loading spinner or skeleton while fetching tickets or user
+   if (loadingUser || loadingTickets) {
+      return <div className="flex flex-1 items-center justify-center">Cargando panel de control...</div>; // Simple loading indicator
+  }
+
+   if (!user) {
+       return (
+      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm p-8">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Image src="https://placehold.co/300x200.png" alt="Login required" width={300} height={200} data-ai-hint="login required" className="rounded-md" />
+          <h3 className="text-2xl font-bold tracking-tight">
+            Inicia sesión para ver tu panel de control
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Necesitas iniciar sesión para acceder a esta página.
+          </p>
+          <Button asChild className="mt-4">
+            <Link href="/login">
+               Iniciar Sesión
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (tickets.length === 0 && !loadingTickets) { // Ensure it's not just loading
     return (
       <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm p-8">
         <div className="flex flex-col items-center gap-4 text-center">
@@ -106,7 +205,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTickets}</div>
-            <p className="text-xs text-muted-foreground">Tickets activos y completados</p>
+            <p className="text-xs text-muted-foreground">Tickets activos y completados</p> {/* This description might need adjustment based on filters if applied */}
           </CardContent>
         </Card>
         <Card>
@@ -126,7 +225,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{tickets.filter(t => t.status === 'COMPLETADA').length}</div>
-            <p className="text-xs text-muted-foreground">Tickets finalizados este mes</p> {/* Placeholder description */}
+            <p className="text-xs text-muted-foreground">Tickets completados</p> {/* Adjusted description */}
           </CardContent>
         </Card>
       </div>
@@ -180,6 +279,9 @@ export default function DashboardPage() {
             </ChartContainer>
           </CardContent>
         </Card>
+
+         {/* You can add a chart for dates here if needed, e.g., tickets created per week/month */}
+
       </div>
     </>
   );
