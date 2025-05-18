@@ -15,6 +15,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast"
 import { useState } from "react"
 
+// Import Firebase Firestore functions
+import { db } from '@/lib/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
+
 interface TicketTableActionsProps {
   ticket: Ticket
   onEdit: (ticket: Ticket) => void
@@ -28,14 +32,27 @@ export function TicketTableActions({ ticket, onEdit, onDelete, onView }: TicketT
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    onDelete(ticket.id);
-    toast({
-      title: "Ticket Eliminado",
-      description: `El ticket "${ticket.title}" ha sido eliminado.`,
-    });
-    setIsDeleting(false);
+    try {
+      // Delete the ticket from Firestore
+      const ticketRef = doc(db, "tickets", ticket.id);
+      await deleteDoc(ticketRef);
+
+      // Notify the parent component and show success toast
+      onDelete(ticket.id);
+      toast({
+        title: "Ticket Eliminado",
+        description: `El ticket "${ticket.title}" ha sido eliminado.`,
+      });
+    } catch (error) {
+      console.error('Error deleting ticket:', error);
+      toast({
+        title: "Error al eliminar ticket",
+        description: "Hubo un problema al eliminar el ticket.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   return (

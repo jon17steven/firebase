@@ -14,7 +14,7 @@ export type Status = 'PENDIENTE' | 'EN_PROGRESO' | 'COMPLETADA';
 export interface Ticket {
   id: string;
   title: string;
-  description: string;
+  description: string; // Keep as string for the final Ticket object
   priority: Priority;
   status: Status;
   dueDate: Date; // Or Timestamp for Firebase
@@ -23,10 +23,10 @@ export interface Ticket {
   userId: string;
 }
 
-// For form data
+// For form data - description can be optional
 export interface TicketFormData {
   title: string;
-  description: string;
+  description?: string; // Make description optional to match Zod schema
   priority: Priority;
   status: Status;
   dueDate: Date;

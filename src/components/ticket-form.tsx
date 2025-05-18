@@ -19,6 +19,13 @@ import { PRIORITIES, STATUSES } from '@/lib/constants';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
+// Import Firebase Firestore functions
+import { db } from '@/lib/firebase';
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+
+// Import useAuth hook
+import { useAuth } from '@/hooks/use-auth-listener';
+
 const ticketFormSchema = z.object({
   title: z.string().min(3, { message: 'El título debe tener al menos 3 caracteres.' }).max(100, { message: 'El título no puede exceder los 100 caracteres.' }),
   description: z.string().max(500, { message: 'La descripción no puede exceder los 500 caracteres.' }).optional(),
@@ -37,6 +44,7 @@ interface TicketFormProps {
 export function TicketForm({ initialData, onSubmitSuccess, onCancel, isEditing = false }: TicketFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth(); // Use the auth hook
 
   const form = useForm<TicketFormData>({
     resolver: zodResolver(ticketFormSchema),
@@ -46,7 +54,8 @@ export function TicketForm({ initialData, onSubmitSuccess, onCancel, isEditing =
           description: initialData.description,
           priority: initialData.priority,
           status: initialData.status,
-          dueDate: new Date(initialData.dueDate),
+          // Correctly handle Firestore Timestamp conversion
+          dueDate: initialData.dueDate && (initialData.dueDate as any).toDate ? (initialData.dueDate as any).toDate() : new Date(initialData.dueDate),
         }
       : {
           title: '',
@@ -60,34 +69,68 @@ export function TicketForm({ initialData, onSubmitSuccess, onCancel, isEditing =
   async function onSubmit(data: TicketFormData) {
     setIsLoading(true);
     console.log('Ticket data submitted:', data);
-    // Here you would typically call a server action or API endpoint
-    // For example:
-    // if (isEditing && initialData) {
-    //   await updateTicketAction({ ...initialData, ...data });
-    // } else {
-    //   await createTicketAction(data);
-    // }
 
-    // Mock submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Get the actual logged-in user ID
+    if (!user) {
+        toast({
+            title: 'Error de autenticación',
+            description: 'Debes iniciar sesión para crear un ticket.',
+            variant: 'destructive',
+        });
+        setIsLoading(false);
+        return; // Stop if user is not logged in
+    }
+    
+    const userId = user.id; // Use the authenticated user's ID
 
-    const submittedTicket: Ticket = {
-      id: initialData?.id || crypto.randomUUID(),
-      userId: initialData?.userId || 'mockUserId', // Replace with actual user ID
-      createdAt: initialData?.createdAt || new Date(),
-      updatedAt: new Date(),
-      ...data,
+    // Ensure description is always a string, even if optional in form data
+    const ticketDataToSave = {
+        ...data,
+        description: data.description || '', // Provide a default empty string if undefined
+        userId: userId,
+        createdAt: initialData?.createdAt || new Date(), // Keep original creation date if editing
+        updatedAt: new Date(),
     };
 
-    toast({
-      title: isEditing ? 'Ticket Actualizado' : 'Ticket Creado',
-      description: `El ticket "${submittedTicket.title}" ha sido ${isEditing ? 'actualizado' : 'creado'} exitosamente.`,
-    });
-    
-    onSubmitSuccess?.(submittedTicket);
-    setIsLoading(false);
-    if (!isEditing) form.reset(); // Reset form only if creating new
-  }
+    try {
+        let submittedTicket: Ticket;
+
+        if (isEditing && initialData) {
+            // Update existing ticket
+            const ticketRef = doc(db, "tickets", initialData.id);
+            await updateDoc(ticketRef, ticketDataToSave);
+            // For simplicity, reconstruct the object, ideally fetch the actual doc after update
+            submittedTicket = { id: initialData.id, ...ticketDataToSave } as Ticket; // Construct updated ticket object
+
+            toast({
+                title: 'Ticket Actualizado',
+                description: `El ticket "${submittedTicket.title}" ha sido actualizado exitosamente.`,
+            });
+        } else {
+            // Add new ticket
+            const docRef = await addDoc(collection(db, "tickets"), ticketDataToSave);
+             // For simplicity, reconstruct the object with the new ID, ideally fetch the actual doc
+            submittedTicket = { id: docRef.id, ...ticketDataToSave } as Ticket; // Construct new ticket object with Firestore ID
+            toast({
+                title: 'Ticket Creado',
+                description: `El ticket "${submittedTicket.title}" ha sido creado exitosamente.`,
+            });
+             if (!isEditing) form.reset(); // Reset form only if creating new
+        }
+
+        onSubmitSuccess?.(submittedTicket);
+
+    } catch (error) {
+        console.error('Error saving ticket:', error);
+        toast({
+            title: 'Error',
+            description: `Hubo un error al ${isEditing ? 'actualizar' : 'crear'} el ticket.`, // Display a more user-friendly message
+            variant: 'destructive',
+        });
+    } finally {
+        setIsLoading(false);
+    }
+ }
 
   return (
     <Form {...form}>

@@ -12,13 +12,13 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell } from 
 import Image from 'next/image';
 
 // Mock data - replace with actual data fetching
-const mockTickets: Ticket[] = [
-  { id: '1', title: 'Configurar entorno de desarrollo', description: 'Instalar Node, VSCode, etc.', priority: 'ALTA', status: 'COMPLETADA', dueDate: new Date(2024, 6, 15), createdAt: new Date(2024, 6, 1), updatedAt: new Date(2024, 6, 2), userId: 'user1' },
-  { id: '2', title: 'Diseñar UI para dashboard', description: 'Crear mockups en Figma.', priority: 'MEDIA', status: 'EN_PROGRESO', dueDate: new Date(2024, 6, 20), createdAt: new Date(2024, 6, 5), updatedAt: new Date(2024, 6, 10), userId: 'user1' },
-  { id: '3', title: 'Implementar autenticación', description: 'Usar Firebase Auth.', priority: 'ALTA', status: 'PENDIENTE', dueDate: new Date(2024, 6, 25), createdAt: new Date(2024, 6, 10), updatedAt: new Date(2024, 6, 10), userId: 'user1' },
-  { id: '4', title: 'Desarrollar CRUD de tickets', description: 'Funcionalidad completa para tickets.', priority: 'MEDIA', status: 'PENDIENTE', dueDate: new Date(2024, 7, 1), createdAt: new Date(2024, 6, 12), updatedAt: new Date(2024, 6, 12), userId: 'user1' },
-  { id: '5', title: 'Revisar textos de la app', description: 'Corregir gramática y ortografía.', priority: 'BAJA', status: 'EN_PROGRESO', dueDate: new Date(2024, 7, 5), createdAt: new Date(2024, 6, 18), updatedAt: new Date(2024, 6, 19), userId: 'user1' },
-];
+// const mockTickets: Ticket[] = [
+//   { id: '1', title: 'Configurar entorno de desarrollo', description: 'Instalar Node, VSCode, etc.', priority: 'ALTA', status: 'COMPLETADA', dueDate: new Date(2024, 6, 15), createdAt: new Date(2024, 6, 1), updatedAt: new Date(2024, 6, 2), userId: 'user1' },
+//   { id: '2', title: 'Diseñar UI para dashboard', description: 'Crear mockups en Figma.', priority: 'MEDIA', status: 'EN_PROGRESO', dueDate: new Date(2024, 6, 20), createdAt: new Date(2024, 6, 5), updatedAt: new Date(2024, 6, 10), userId: 'user1' },
+//   { id: '3', title: 'Implementar autenticación', description: 'Usar Firebase Auth.', priority: 'ALTA', status: 'PENDIENTE', dueDate: new Date(2024, 6, 25), createdAt: new Date(2024, 6, 10), updatedAt: new Date(2024, 6, 10), userId: 'user1' },
+//   { id: '4', title: 'Desarrollar CRUD de tickets', description: 'Funcionalidad completa para tickets.', priority: 'MEDIA', status: 'PENDIENTE', dueDate: new Date(2024, 7, 1), createdAt: new Date(2024, 6, 12), updatedAt: new Date(2024, 6, 12), userId: 'user1' },
+//   { id: '5', title: 'Revisar textos de la app', description: 'Corregir gramática y ortografía.', priority: 'BAJA', status: 'EN_PROGRESO', dueDate: new Date(2024, 7, 5), createdAt: new Date(2024, 6, 18), updatedAt: new Date(2024, 6, 19), userId: 'user1' },
+// ];
 
 
 const statusColors: Record<Status, string> = {
@@ -40,7 +40,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // In a real app, fetch user's tickets here
     // For now, use mock data
-    setTickets(mockTickets);
+    // setTickets(mockTickets);
   }, []);
 
   const totalTickets = tickets.length;
