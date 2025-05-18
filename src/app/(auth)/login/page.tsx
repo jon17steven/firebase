@@ -11,8 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useAuthContext } from '@/components/providers/auth-provider';
 import { AppLogo } from '@/components/app-logo';
+
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Por favor ingresa un email válido.' }),
@@ -23,7 +25,6 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [showSignupRedirect, setShowSignupRedirect] = useState(false);
@@ -40,29 +41,24 @@ export default function LoginPage() {
     setIsLoading(true);
     setApiError(null);
     setShowSignupRedirect(false);
+
     try {
-      await login(data.email, data.password);
-      // La redirección a /admin/dashboard o /dashboard es manejada por src/app/page.tsx
-      // o (app)/layout.tsx una vez que el AuthContext se actualiza.
-      // Aquí, solo nos aseguramos de que el usuario vaya a una ruta post-login.
-      router.push('/dashboard');
+      await signInWithEmailAndPassword(auth, data.email, data.password);
+      router.push('/dashboard'); // ✅ Redirección después de login exitoso
     } catch (error: any) {
       setIsLoading(false);
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
         setApiError('Este correo no está registrado.');
         setShowSignupRedirect(true);
       } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        // Nota: auth/invalid-credential puede ser devuelto para ambos casos en versiones recientes de Firebase SDK
-        // para prevenir la enumeración de usuarios. Si es así, un mensaje genérico como "Credenciales incorrectas" podría ser mejor.
         setApiError('Contraseña incorrecta.');
+      } else if (error.code === 'auth/invalid-api-key') {
+        setApiError('Error de configuración de Firebase (API Key inválida). Revisa tus variables de entorno.');
       } else {
         setApiError('Error al iniciar sesión. Por favor, inténtalo de nuevo.');
-        // El AuthProvider ya muestra un toast con el error de Firebase si está disponible.
         console.error("Login error:", error.message, "Code:", error.code);
       }
     }
-    // No es necesario setIsLoading(false) aquí después de un router.push exitoso,
-    // ya que el componente se desmontará. Ya se maneja en el bloque catch.
   }
 
   return (
